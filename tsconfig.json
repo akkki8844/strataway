@@ -16,7 +16,7 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./frontend/*"],
+      "@/*": ["./src/*"],
       "@types/*": ["./types/*"],
       "@utils/*": ["./utils/*"],
       "@styles/*": ["./styles/*"]
