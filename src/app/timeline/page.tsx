@@ -1,350 +1,262 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTimelineStore } from '../../store/timelineStore';
 import { useRouteStore } from '../../store/routeStore';
 import { Task } from '../../../types/task';
 import Link from 'next/link';
 
 export default function TimelinePage() {
-  const { tasks, currentWeek, maxHoursPerWeek, completeTask, skipTask, rescheduleTask, adaptToCapacityChange, getWeekLoad } = useTimelineStore();
+  const { 
+    tasks, currentWeek, maxHoursPerWeek, completeTask, skipTask, 
+    rescheduleTask, adaptToCapacityChange, getWeekLoad 
+  } = useTimelineStore();
   const { routes, activeRouteId } = useRouteStore();
-  const activeRoute = routes.find(r => r.meta.id === activeRouteId);
-
+  
+  const [mounted, setMounted] = useState(false);
   const [focusedWeek, setFocusedWeek] = useState(currentWeek);
   const [newMaxHours, setNewMaxHours] = useState(maxHoursPerWeek);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [rescheduleWeek, setRescheduleWeek] = useState('');
   const [showCapacityPanel, setShowCapacityPanel] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<number | null>(null);
 
+  useEffect(() => { setMounted(true); }, []);
+
+  const activeRoute = routes.find(r => r.meta.id === activeRouteId);
   const totalWeeks = activeRoute?.weeks ?? 36;
-  // Build week range: show 8 weeks around current
   const visibleWeeks = Array.from({ length: totalWeeks }, (_, i) => i);
 
   const getTasksForWeek = (w: number) => tasks.filter(t => t.core.weekIndex === w);
   const getWeekStatus = (w: number) => {
     const load = getWeekLoad(w);
     const pct = load / maxHoursPerWeek;
-    if (pct > 1) return 'overload';
-    if (pct > 0.75) return 'heavy';
-    if (pct > 0.25) return 'moderate';
-    if (pct > 0) return 'light';
+    if (pct > 1.1) return 'overload';
+    if (pct > 0.85) return 'heavy';
+    if (pct > 0.4) return 'moderate';
+    if (pct > 0.1) return 'light';
     return 'empty';
   };
 
   const completedCount = tasks.filter(t => t.execution.status === 'completed').length;
   const completionPct = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
+  if (!mounted) return null;
+
   return (
     <div className="slide-up">
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="page-header page-header-row">
         <div>
-          <h1 className="page-title">Timeline Planner</h1>
+          <h1 className="page-title text-gradient">Timeline Planner</h1>
           <p className="page-subtitle">
-            {activeRoute?.meta.label} · {tasks.length} tasks across {totalWeeks} weeks ·{' '}
-            <span style={{ color: 'var(--success)' }}>{completionPct}% complete</span>
+            {activeRoute?.meta.label} · {tasks.length} tasks across {totalWeeks} weeks · 
+            <span style={{ color: 'var(--success)', fontWeight: 600, marginLeft: '0.5rem' }}>{completionPct}% complete</span>
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="button secondary" style={{ fontSize: '0.825rem' }}
-            onClick={() => setShowCapacityPanel(!showCapacityPanel)}>
-            ⚙ Adjust Capacity
+          <button className="button secondary" onClick={() => setShowCapacityPanel(!showCapacityPanel)}>
+            ⚙ Adapt Capacity
           </button>
-          <Link href="/analytics">
-            <button className="button ghost" style={{ fontSize: '0.825rem' }}>Analytics →</button>
-          </Link>
         </div>
       </div>
 
-      {/* ── Capacity Adjustment Banner ─────────────────────────────────── */}
+      {/* ── Capacity Adjustment ────────────────────────────────────────── */}
       {showCapacityPanel && (
-        <div className="card outline scale-in" style={{
-          marginBottom: '1.5rem',
-          background: 'rgba(79,140,255,0.05)',
-          border: '1px solid rgba(79,140,255,0.25)',
-        }}>
-          <div className="section-title" style={{ marginBottom: '0.75rem' }}>Adapt Timeline Capacity</div>
-          <p style={{ fontSize: '0.825rem', color: 'var(--muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
-            Changing your weekly capacity will automatically reschedule all <em>planned</em> and <em>skipped</em> tasks
-            to fit within the new limit. Completed and in-progress tasks are preserved.
+        <div className="card glass-card scale-in" style={{ marginBottom: '2rem' }}>
+          <div className="section-title">Adapt Timeline Capacity</div>
+          <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+            Adjusting your weekly capacity will trigger an <strong style={{ color: 'var(--text)' }}>adaptive re-routing</strong>. 
+            All unplanned and skipped tasks will be rescheduled to fit within the new limit while maintaining dependency order.
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <label style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>New max hours/week: <strong style={{ color: 'var(--text)' }}>{newMaxHours}h</strong></label>
-              <input type="range" min={3} max={30} value={newMaxHours}
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>New Limit</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)' }}>{newMaxHours}h/week</span>
+              </div>
+              <input 
+                type="range" min={3} max={30} value={newMaxHours}
                 onChange={e => setNewMaxHours(Number(e.target.value))}
-                style={{ width: 220, accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }} 
+              />
             </div>
-            <button className="button" style={{ fontSize: '0.825rem' }}
-              onClick={() => { adaptToCapacityChange(newMaxHours); setShowCapacityPanel(false); }}>
-              Apply & Recalculate
-            </button>
-            <button className="button ghost" style={{ fontSize: '0.825rem' }}
-              onClick={() => setShowCapacityPanel(false)}>Cancel</button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="button" onClick={() => { adaptToCapacityChange(newMaxHours); setShowCapacityPanel(false); }}>
+                Apply Changes
+              </button>
+              <button className="button ghost" onClick={() => setShowCapacityPanel(false)}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem' }}>
-        {/* ── Left: Week overview strip + week view ────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-          {/* Mini heatmap strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
+        {/* ── Left: Main Timeline ───────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* Week Selector Grid */}
           <div className="card outline">
             <div className="section-header">
-              <div className="section-title">Week Overview</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>Click a week to focus · Current: Wk {currentWeek + 1}</div>
+              <div className="section-title" style={{ color: 'var(--text)' }}>Timeline Navigator</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Current: Wk {currentWeek + 1}</div>
             </div>
-            <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', gap: '3px', minWidth: 'max-content' }}>
-                {visibleWeeks.map(w => {
-                  const s = getWeekStatus(w);
-                  const isCurrent = w === currentWeek;
-                  const isFocused = w === focusedWeek;
-                  const color = s === 'overload' ? '#ef4444'
-                    : s === 'heavy' ? '#f59e0b'
-                    : s === 'moderate' ? '#4f8cff'
-                    : s === 'light' ? 'rgba(79,140,255,0.35)'
-                    : 'rgba(255,255,255,0.05)';
-                  return (
-                    <div
-                      key={w}
-                      onClick={() => setFocusedWeek(w)}
-                      title={`Week ${w + 1}: ${getWeekLoad(w).toFixed(1)}h`}
-                      style={{
-                        width: 14, height: 40, borderRadius: 3,
-                        background: color,
-                        cursor: 'pointer',
-                        outline: isFocused ? '2px solid var(--primary)' : isCurrent ? '2px solid rgba(79,140,255,0.5)' : 'none',
-                        outlineOffset: '1px',
-                        flexShrink: 0,
-                        transition: 'transform 0.1s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.transform = 'scaleY(1.15)')}
-                      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                    />
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>Week 1</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>Week {totalWeeks}</span>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              {[
-                { color: 'rgba(255,255,255,0.05)', label: 'Empty' },
-                { color: 'rgba(79,140,255,0.35)', label: 'Light' },
-                { color: '#4f8cff', label: 'Moderate' },
-                { color: '#f59e0b', label: 'Heavy' },
-                { color: '#ef4444', label: 'Overload' },
-              ].map(l => (
-                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.65rem', color: 'var(--muted)' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: l.color, flexShrink: 0 }} />
-                  {l.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Focused week view */}
-          <div className="card outline">
-            <div className="section-header">
-              <div>
-                <div className="section-title">Week {focusedWeek + 1} Detail</div>
-                <div className="section-subtitle">
-                  {getWeekLoad(focusedWeek).toFixed(1)}h of {maxHoursPerWeek}h ·{' '}
-                  {focusedWeek < currentWeek ? '✓ Past' : focusedWeek === currentWeek ? '📍 Current' : '→ Future'}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.35rem' }}>
-                <button className="button secondary" style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
-                  onClick={() => setFocusedWeek(Math.max(0, focusedWeek - 1))}>←</button>
-                <button className="button secondary" style={{ fontSize: '0.72rem', padding: '0.3rem 0.55rem' }}
-                  onClick={() => setFocusedWeek(Math.min(totalWeeks - 1, focusedWeek + 1))}>→</button>
-              </div>
-            </div>
-
-            {/* Capacity bar */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>Planned hours</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: getWeekLoad(focusedWeek) > maxHoursPerWeek ? 'var(--danger)' : 'var(--text)' }}>
-                  {getWeekLoad(focusedWeek).toFixed(1)} / {maxHoursPerWeek}h
-                </span>
-              </div>
-              <div className="progress">
-                <div className="progress-bar" style={{
-                  width: `${Math.min(100, (getWeekLoad(focusedWeek) / maxHoursPerWeek) * 100)}%`,
-                  background: getWeekLoad(focusedWeek) > maxHoursPerWeek
-                    ? 'linear-gradient(90deg,var(--danger),#f87171)'
-                    : 'linear-gradient(90deg,var(--primary),#7aa7ff)',
-                }} />
-              </div>
-            </div>
-
-            {getTasksForWeek(focusedWeek).length === 0 ? (
-              <div className="empty-state">
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🗓</div>
-                No tasks in this week
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {getTasksForWeek(focusedWeek).map(task => (
-                  <div key={task.core.id}
-                    className={`task-block ${task.execution.status}`}
-                    onClick={() => setSelectedTask(selectedTask?.core.id === task.core.id ? null : task)}
-                    style={{ outline: selectedTask?.core.id === task.core.id ? '1px solid var(--primary)' : 'none' }}>
-                    <div className={`task-dot ${task.core.kind}`} />
-                    <div style={{ flex: 1 }}>
-                      <div className="task-title">{task.core.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: '0.15rem' }}>
-                        {task.core.kind} · {task.links.skillId?.replace(/_/g, ' ') ?? 'general'}
-                        {task.adjustment.rescheduledFromWeekIndex !== null && (
-                          <span style={{ color: 'var(--warning)', marginLeft: '0.5rem' }}>
-                            Moved from Wk {(task.adjustment.rescheduledFromWeekIndex ?? 0) + 1}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="task-hours">{task.core.estimatedHours}h</div>
-                    <TaskStatusBadge status={task.execution.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: Task inspector + nav ───────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Jump to week */}
-          <div className="card outline">
-            <div className="section-title" style={{ marginBottom: '0.75rem' }}>Week Navigation</div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <button className="button secondary" style={{ flex: 1, fontSize: '0.8rem' }}
-                onClick={() => setFocusedWeek(currentWeek)}>Current (Wk {currentWeek + 1})</button>
-              <button className="button secondary" style={{ flex: 1, fontSize: '0.8rem' }}
-                onClick={() => setFocusedWeek(0)}>First</button>
-            </div>
-            {/* All tasks summary */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              {['completed', 'in_progress', 'planned', 'skipped'].map(s => {
-                const count = tasks.filter(t => t.execution.status === s).length;
-                const color = s === 'completed' ? '#4ade80' : s === 'in_progress' ? '#6ea2ff' : s === 'skipped' ? 'var(--danger)' : 'var(--muted)';
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '6px' }}>
+              {visibleWeeks.map(w => {
+                const s = getWeekStatus(w);
+                const isCurrent = w === currentWeek;
+                const isFocused = w === focusedWeek;
+                const color = s === 'overload' ? 'var(--danger)' 
+                  : s === 'heavy' ? 'var(--warning)' 
+                  : s === 'moderate' ? 'var(--primary)' 
+                  : s === 'light' ? 'var(--primary-glow)' 
+                  : 'rgba(255,255,255,0.05)';
+                
                 return (
-                  <div key={s} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--muted)', textTransform: 'capitalize' }}>{s.replace('_', ' ')}</span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color }}>{count}</span>
-                  </div>
+                  <div
+                    key={w}
+                    onClick={() => setFocusedWeek(w)}
+                    title={`Week ${w + 1}: ${getWeekLoad(w).toFixed(1)}h`}
+                    className="heatmap-cell"
+                    style={{
+                      height: '32px',
+                      borderRadius: 'var(--radius-xs)',
+                      background: color,
+                      border: isFocused ? '2px solid #fff' : isCurrent ? '2px solid var(--primary)' : 'none',
+                      opacity: w < currentWeek ? 0.4 : 1
+                    }}
+                  />
                 );
               })}
             </div>
           </div>
 
+          {/* Focused Week View */}
+          <div className="card glass">
+            <div className="section-header">
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Week {focusedWeek + 1} Detail</h3>
+                <div style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
+                  {getWeekLoad(focusedWeek).toFixed(1)}h planned · 
+                  <span style={{ marginLeft: '0.5rem', color: focusedWeek < currentWeek ? 'var(--success)' : focusedWeek === currentWeek ? 'var(--primary)' : 'var(--muted)' }}>
+                    {focusedWeek < currentWeek ? 'Archived' : focusedWeek === currentWeek ? '📍 Active' : 'Forward Look'}
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="button secondary" style={{ padding: '0.5rem' }} 
+                  onClick={() => setFocusedWeek(Math.max(0, focusedWeek - 1))}>←</button>
+                <button className="button secondary" style={{ padding: '0.5rem' }} 
+                  onClick={() => setFocusedWeek(Math.min(totalWeeks - 1, focusedWeek + 1))}>→</button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {getTasksForWeek(focusedWeek).length === 0 ? (
+                <div className="empty-state" style={{ padding: '3rem' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📭</div>
+                  No tasks scheduled for this period
+                </div>
+              ) : (
+                getTasksForWeek(focusedWeek).map(task => (
+                  <div 
+                    key={task.core.id}
+                    className={`task-block hoverable ${task.execution.status}`}
+                    onClick={() => setSelectedTask(selectedTask?.core.id === task.core.id ? null : task)}
+                    style={{ 
+                      outline: selectedTask?.core.id === task.core.id ? '2px solid var(--primary)' : 'none',
+                      background: selectedTask?.core.id === task.core.id ? 'var(--bg-elevated)' : 'var(--card)'
+                    }}
+                  >
+                    <div className={`task-dot ${task.core.kind}`} style={{ width: '10px', height: '10px' }} />
+                    <div style={{ flex: 1 }}>
+                      <div className="task-title" style={{ fontWeight: 600 }}>{task.core.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
+                        {task.core.kind.replace('_', ' ')} · {task.links.skillId?.replace(/_/g, ' ') ?? 'general'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 700 }}>{task.core.estimatedHours}h</div>
+                      <StatusBadge status={task.execution.status} />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: Inspector & Stats ──────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Global Stats */}
+          <div className="card outline">
+            <div className="section-title">Timeline Summary</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <StatRow label="Target Completion" value={`Wk ${totalWeeks}`} />
+              <StatRow label="Active Goal" value={activeRoute?.meta.label ?? '—'} />
+              <StatRow label="Remaining Tasks" value={`${tasks.filter(t => t.execution.status === 'planned').length}`} />
+              <StatRow label="Capacity Utilization" value={`${Math.round((getWeekLoad(focusedWeek) / maxHoursPerWeek) * 100)}%`} />
+            </div>
+          </div>
+
           {/* Task Inspector */}
           {selectedTask ? (
-            <div className="card outline scale-in">
-              <div className="section-header">
-                <div className="section-title">Task Inspector</div>
-                <button className="button ghost" style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
-                  onClick={() => setSelectedTask(null)}>✕</button>
+            <div className="card glass-card scale-in" style={{ borderLeft: '4px solid var(--primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase' }}>Inspector</div>
+                <button className="button ghost" style={{ padding: '0' }} onClick={() => setSelectedTask(null)}>✕</button>
+              </div>
+              
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedTask.core.title}</h4>
+              <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                {selectedTask.core.description}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <MiniInfo label="Kind" value={selectedTask.core.kind} />
+                <MiniInfo label="Hours" value={`${selectedTask.core.estimatedHours}h`} />
+                <MiniInfo label="Skill" value={selectedTask.links.skillId?.replace(/_/g, ' ') ?? '—'} />
+                <MiniInfo label="Status" value={selectedTask.execution.status} />
               </div>
 
-              <div style={{ marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>
-                  {selectedTask.core.title}
-                </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-                  {selectedTask.core.description}
-                </p>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                <MiniStat label="Kind" value={selectedTask.core.kind} />
-                <MiniStat label="Hours" value={`${selectedTask.core.estimatedHours}h`} />
-                <MiniStat label="Skill" value={selectedTask.links.skillId?.replace(/_/g, ' ') ?? '—'} />
-                <MiniStat label="Status" value={selectedTask.execution.status.replace('_', ' ')} />
-                {selectedTask.execution.actualHours !== null && (
-                  <MiniStat label="Actual Hours" value={`${selectedTask.execution.actualHours}h`} />
-                )}
-                {selectedTask.execution.completedAt && (
-                  <MiniStat label="Completed" value={selectedTask.execution.completedAt.slice(0, 10)} />
-                )}
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {selectedTask.execution.status !== 'completed' && (
-                  <button className="button success" style={{ fontSize: '0.8rem', width: '100%' }}
-                    onClick={() => { completeTask(selectedTask.core.id, selectedTask.core.estimatedHours); setSelectedTask(null); }}>
-                    ✓ Mark Complete
-                  </button>
-                )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {selectedTask.execution.status === 'planned' && (
-                  <button className="button secondary" style={{ fontSize: '0.8rem', width: '100%' }}
-                    onClick={() => { skipTask(selectedTask.core.id, 'manual_skip'); setSelectedTask(null); }}>
-                    ⊘ Skip Task
-                  </button>
+                  <>
+                    <button className="button primary-gradient" onClick={() => { completeTask(selectedTask.core.id, selectedTask.core.estimatedHours); setSelectedTask(null); }}>
+                      Mark as Complete
+                    </button>
+                    <button className="button secondary" onClick={() => { skipTask(selectedTask.core.id, 'manual_skip'); setSelectedTask(null); }}>
+                      Skip Task
+                    </button>
+                  </>
                 )}
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <input
-                    type="number" placeholder="Week #" value={rescheduleWeek}
-                    onChange={e => setRescheduleWeek(e.target.value)}
-                    className="input" style={{ fontSize: '0.8rem', padding: '0.4rem 0.5rem' }}
-                    min={1} max={totalWeeks}
-                  />
-                  <button className="button secondary" style={{ fontSize: '0.8rem', flexShrink: 0 }}
-                    onClick={() => {
-                      const w = parseInt(rescheduleWeek, 10);
-                      if (!isNaN(w) && w >= 1 && w <= totalWeeks) {
-                        rescheduleTask(selectedTask.core.id, w - 1);
-                        setRescheduleWeek('');
+                
+                <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.75rem' }}>Reschedule to Week</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input 
+                      type="number" 
+                      className="input" 
+                      style={{ flex: 1, padding: '0.5rem', background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: '4px', color: '#fff' }}
+                      min={currentWeek + 1}
+                      max={totalWeeks}
+                      placeholder="Wk #"
+                      onChange={e => setRescheduleTarget(Number(e.target.value))}
+                    />
+                    <button className="button secondary" onClick={() => {
+                      if (rescheduleTarget && rescheduleTarget > 0) {
+                        rescheduleTask(selectedTask.core.id, rescheduleTarget - 1);
                         setSelectedTask(null);
                       }
                     }}>Move</button>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="card flat" style={{
-              border: '1px dashed var(--border)', padding: '1.5rem', textAlign: 'center', color: 'var(--muted)', fontSize: '0.825rem',
-            }}>
-              Click a task to inspect, complete, skip, or reschedule it
-            </div>
-          )}
-
-          {/* Milestones checklist */}
-          {activeRoute && (
-            <div className="card outline">
-              <div className="section-title" style={{ marginBottom: '0.75rem' }}>Milestones</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {activeRoute.milestones.map(m => {
-                  const reached = m.targetWeekIndex < currentWeek;
-                  return (
-                    <div key={m.id} style={{
-                      display: 'flex', gap: '0.65rem', alignItems: 'center',
-                      opacity: reached ? 0.5 : 1,
-                    }}>
-                      <div style={{
-                        width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                        border: `2px solid ${reached ? '#22c55e' : m.isCritical ? 'var(--primary)' : 'var(--border)'}`,
-                        background: reached ? '#22c55e' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.6rem', color: '#fff',
-                      }}>{reached ? '✓' : ''}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text)' }}>{m.title}</div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--muted)' }}>Week {m.targetWeekIndex + 1}</div>
-                      </div>
-                      {m.isCritical && <span style={{ fontSize: '0.6rem', color: 'var(--danger)', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.35rem', borderRadius: 99 }}>critical</span>}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="card flat" style={{ border: '1px dashed var(--border)', textAlign: 'center', padding: '2rem' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>📑</div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Select a task to inspect or modify its state</p>
             </div>
           )}
         </div>
@@ -353,28 +265,35 @@ export default function TimelinePage() {
   );
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function TaskStatusBadge({ status }: { status: string }) {
-  const cfg: Record<string, { c: string; bg: string }> = {
-    completed: { c: '#4ade80', bg: 'rgba(34,197,94,0.15)' },
-    in_progress: { c: '#6ea2ff', bg: 'rgba(79,140,255,0.15)' },
-    planned: { c: 'var(--muted)', bg: 'rgba(255,255,255,0.06)' },
-    skipped: { c: '#f87171', bg: 'rgba(239,68,68,0.1)' },
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { c: string; bg: string }> = {
+    completed: { c: 'var(--success)', bg: 'rgba(34,197,94,0.1)' },
+    in_progress: { c: 'var(--primary)', bg: 'rgba(79,140,255,0.1)' },
+    planned: { c: 'var(--muted)', bg: 'rgba(255,255,255,0.05)' },
+    skipped: { c: 'var(--danger)', bg: 'rgba(239,68,68,0.1)' },
   };
-  const s = cfg[status] ?? cfg.planned;
+  const s = map[status] ?? map.planned;
   return (
-    <span style={{ fontSize: '0.65rem', fontWeight: 600, color: s.c, background: s.bg, padding: '0.15rem 0.45rem', borderRadius: 99, flexShrink: 0 }}>
-      {status.replace('_', ' ')}
+    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: s.c, background: s.bg, padding: '0.15rem 0.5rem', borderRadius: '4px', textTransform: 'uppercase' }}>
+      {status}
     </span>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ padding: '0.35rem 0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-xs)' }}>
-      <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginBottom: '0.1rem' }}>{label}</div>
-      <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{value}</div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>{label}</span>
+      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>{value}</span>
+    </div>
+  );
+}
+
+function MiniInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: '0.65rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>{label}</div>
+      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{value}</div>
     </div>
   );
 }

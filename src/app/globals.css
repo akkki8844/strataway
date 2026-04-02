@@ -108,6 +108,7 @@ html, body {
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 0 15px var(--primary-glow);
 }
 
 .sidebar-logo-text {
@@ -123,6 +124,82 @@ html, body {
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* ── Glassmorphism & Effects ─────────────────────────────────────────────── */
+.glass {
+  background: var(--card-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+}
+
+.glass-card {
+  background: hsla(var(--card-h), var(--card-s), var(--card-l), 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-lg);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--text) 0%, var(--muted) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.primary-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-soft) 100%);
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+/* ── Refined Components ─────────────────────────────────────────────────── */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-standard);
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: #fff;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), 0 0 12px var(--primary-glow);
+  background: var(--primary-soft);
+}
+
+.button.secondary {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+
+.button.secondary:hover {
+  background: var(--card-hover);
+  border-color: var(--primary-soft);
+}
+
+.button.ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+}
+
+.button.ghost:hover {
+  background: var(--bg-soft);
+  color: var(--text);
 }
 
 /* ── Sidebar nav ─────────────────────────────────────────────────────────── */
@@ -247,18 +324,18 @@ html, body {
 }
 
 .page-title {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.5rem;
   color: var(--text);
-  letter-spacing: -0.03em;
-  line-height: 1.2;
 }
 
 .page-subtitle {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--muted);
-  margin-top: 0.35rem;
-  line-height: 1.5;
+  max-width: 600px;
+  line-height: 1.6;
 }
 
 .page-header-row {
@@ -376,28 +453,30 @@ html, body {
 
 /* ── Section dividers ────────────────────────────────────────────────────── */
 .section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 3.5rem;
 }
 
 .section-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   gap: 1rem;
 }
 
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.02em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12rem;
+  color: var(--muted-soft);
+  margin-bottom: 0.25rem;
 }
 
 .section-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--muted);
-  margin-top: 0.15rem;
+  line-height: 1.5;
 }
 
 /* ── Skill node colors by status ─────────────────────────────────────────── */

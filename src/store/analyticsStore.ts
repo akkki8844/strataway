@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { AnalyticsSnapshot } from '../../types/analytics';
+import { AnalyticsSnapshot, RouteAnalyticsSummary, WeeklyLoad } from '../../types/analytics';
 import { SEED_ANALYTICS } from '../../utils/seedData';
+import { Task } from '../../types/task';
 
 interface AnalyticsState {
   snapshot: AnalyticsSnapshot;
@@ -8,12 +9,9 @@ interface AnalyticsState {
   isLoading: boolean;
 
   setActiveAnalyticsRoute: (routeId: string) => void;
-  getRouteAnalytics: (routeId: string) => AnalyticsSnapshot['routes'][number] | undefined;
-  getRiskBreakdown: (routeId: string) => AnalyticsSnapshot['riskBreakdowns'][number] | undefined;
-  getProbabilityTimeline: (routeId: string) => AnalyticsSnapshot['probabilityTimelines'][number] | undefined;
-  getWeeklyLoads: (routeId: string) => AnalyticsSnapshot['weeklyLoads'];
-  getOverloadWeeks: (routeId: string) => number[];
-  getPeakBurnoutWeek: (routeId: string) => number | null;
+  getRouteAnalytics: (routeId: string, tasks?: Task[], maxHours?: number) => RouteAnalyticsSummary | undefined;
+  getWeeklyLoads: (routeId: string, tasks?: Task[], maxHours?: number) => WeeklyLoad[];
+  getOverloadWeeks: (routeId: string, tasks?: Task[], maxHours?: number) => number[];
 }
 
 export const useAnalyticsStore = create<AnalyticsState>()((set, get) => ({
@@ -23,27 +21,55 @@ export const useAnalyticsStore = create<AnalyticsState>()((set, get) => ({
 
   setActiveAnalyticsRoute: (routeId) => set({ activeRouteId: routeId }),
 
-  getRouteAnalytics: (routeId) =>
-    get().snapshot.routes.find((r) => r.routeId === routeId),
+  getRouteAnalytics: (routeId, tasks, maxHours) => {
+    const base = get().snapshot.routes.find((r) => r.routeId === routeId);
+    if (!base) return undefined;
+    if (!tasks || !maxHours) return base;
 
-  getRiskBreakdown: (routeId) =>
-    get().snapshot.riskBreakdowns.find((r) => r.routeId === routeId),
+    // Dynamic calculation for prototype
+    const overloads = get().getOverloadWeeks(routeId, tasks, maxHours);
+    const risk: RouteAnalyticsSummary['risk'] = overloads.length > 5 ? 'very_high' : overloads.length > 2 ? 'high' : overloads.length > 0 ? 'medium' : 'low';
+    const confidence: RouteAnalyticsSummary['currentConfidence'] = overloads.length > 3 ? 'low' : overloads.length > 0 ? 'medium' : 'high';
 
-  getProbabilityTimeline: (routeId) =>
-    get().snapshot.probabilityTimelines.find((t) => t.routeId === routeId),
+    return { 
+      ...base, 
+      risk, 
+      currentConfidence: confidence,
+      sustainability: overloads.length > 0 ? 'strained' : 'stable'
+    };
+  },
 
-  getWeeklyLoads: (routeId) =>
-    get().snapshot.weeklyLoads.filter((l) => l.routeId === routeId),
+  getWeeklyLoads: (routeId, tasks, maxHours) => {
+    if (!tasks || !maxHours) {
+      return get().snapshot.weeklyLoads.filter((l) => l.routeId === routeId);
+    }
 
-  getOverloadWeeks: (routeId) =>
-    get()
-      .snapshot.weeklyLoads.filter((l) => l.routeId === routeId && l.overload)
-      .map((l) => l.weekIndex),
+    // Dynamic load calculation
+    const loadsMap = new Map<number, number>();
+    tasks.forEach(t => {
+      const w = t.core.weekIndex;
+      loadsMap.set(w, (loadsMap.get(w) ?? 0) + t.core.estimatedHours);
+    });
 
-  getPeakBurnoutWeek: (routeId) => {
-    const loads = get().snapshot.weeklyLoads.filter((l) => l.routeId === routeId);
-    const highRisk = loads.filter((l) => l.burnoutRisk === 'high' || l.burnoutRisk === 'very_high');
-    if (highRisk.length === 0) return null;
-    return highRisk.reduce((a, b) => (a.plannedHours > b.plannedHours ? a : b)).weekIndex;
+    const maxWeek = Math.max(...tasks.map(t => t.core.weekIndex), 20);
+    const loads: WeeklyLoad[] = [];
+    for (let i = 0; i <= maxWeek; i++) {
+        const planned = loadsMap.get(i) ?? 0;
+        loads.push({
+            routeId,
+            weekIndex: i,
+            plannedHours: planned,
+            maxHours,
+            overload: planned > maxHours,
+            burnoutRisk: planned > maxHours * 1.2 ? 'high' : planned > maxHours ? 'medium' : 'low'
+        });
+    }
+    return loads;
+  },
+
+  getOverloadWeeks: (routeId, tasks, maxHours) => {
+    return get().getWeeklyLoads(routeId, tasks, maxHours)
+      .filter(l => l.overload)
+      .map(l => l.weekIndex);
   },
 }));

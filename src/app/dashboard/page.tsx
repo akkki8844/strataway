@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export default function DashboardPage() {
   const { routes, activeRouteId } = useRouteStore();
-  const { tasks, currentWeek } = useTimelineStore();
+  const { tasks, currentWeek, maxHoursPerWeek } = useTimelineStore();
   const { getRouteAnalytics, getOverloadWeeks, getWeeklyLoads } = useAnalyticsStore();
   const { mastery } = useSkillStore();
   const [mounted, setMounted] = useState(false);
@@ -17,13 +17,13 @@ export default function DashboardPage() {
   useEffect(() => { setMounted(true); }, []);
 
   const activeRoute = routes.find(r => r.meta.id === activeRouteId);
-  const analytics = getRouteAnalytics(activeRouteId ?? 'route_balanced');
+  const analytics = getRouteAnalytics(activeRouteId ?? 'route_balanced', tasks, maxHoursPerWeek);
   const completedTasks = tasks.filter(t => t.execution.status === 'completed');
   const inProgressTasks = tasks.filter(t => t.execution.status === 'in_progress');
   const currentWeekTasks = tasks.filter(t => t.core.weekIndex === currentWeek);
   const masteredSkills = mastery.filter(m => m.status === 'mastered');
-  const overloadWeeks = getOverloadWeeks(activeRouteId ?? 'route_balanced');
-  const loads = getWeeklyLoads(activeRouteId ?? 'route_balanced');
+  const overloadWeeks = getOverloadWeeks(activeRouteId ?? 'route_balanced', tasks, maxHoursPerWeek);
+  const loads = getWeeklyLoads(activeRouteId ?? 'route_balanced', tasks, maxHoursPerWeek);
   const weekLoad = loads.find(l => l.weekIndex === currentWeek);
   const completionPct = tasks.length > 0
     ? Math.round((completedTasks.length / tasks.length) * 100)

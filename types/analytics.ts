@@ -22,28 +22,32 @@ export interface RiskBreakdown {
   factors: RiskFactor[];
 }
 
+export interface RouteAnalyticsSummary {
+  routeId: string;
+  pace: string;
+  estimatedWeeks: number;
+  totalEffortHours: number;
+  totalCost: number;
+  risk: RiskLevel;
+  sustainability: SustainabilityLevel;
+  currentConfidence: ConfidenceBand;
+}
+
+export interface WeeklyLoad {
+  routeId: string;
+  weekIndex: number;
+  plannedHours: number;
+  maxHours: number;
+  overload: boolean;
+  burnoutRisk: 'low' | 'medium' | 'high' | 'very_high';
+}
+
 export interface AnalyticsSnapshot {
-  routes: {
-    routeId: string;
-    pace: string;
-    estimatedWeeks: number;
-    totalEffortHours: number;
-    totalCost: number;
-    risk: RiskLevel;
-    sustainability: SustainabilityLevel;
-    currentConfidence: ConfidenceBand;
-  }[];
+  routes: RouteAnalyticsSummary[];
   riskBreakdowns: RiskBreakdown[];
   probabilityTimelines: {
     routeId: string;
     points: ProbabilityPoint[];
   }[];
-  weeklyLoads: {
-    routeId: string;
-    weekIndex: number;
-    plannedHours: number;
-    maxHours: number;
-    overload: boolean;
-    burnoutRisk: 'low' | 'medium' | 'high' | 'very_high';
-  }[];
+  weeklyLoads: WeeklyLoad[];
 }
