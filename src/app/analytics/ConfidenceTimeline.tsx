@@ -60,14 +60,14 @@ export default function ConfidenceTimeline({
     padTop + BAND_Y_PCT[band] * innerH;
 
   // Build smooth polyline via midpoint smoothing
-  const coordPairs = points.map((p, i) => ({
+  const coordPairs = points.map((p: any, i: number) => ({
     x: toX(i),
-    y: toY(p.band),
-    band: p.band,
+    y: toY(p.band as ConfidenceBand),
+    band: p.band as ConfidenceBand,
   }));
 
   // SVG smooth path using cubic bezier
-  const linePath = coordPairs.reduce((acc, pt, i) => {
+  const linePath = coordPairs.reduce((acc: string, pt: any, i: number) => {
     if (i === 0) return `M${pt.x},${pt.y}`;
     const prev = coordPairs[i - 1];
     const cx = (prev.x + pt.x) / 2;
@@ -127,12 +127,12 @@ export default function ConfidenceTimeline({
 
         {/* Data points — sampled every 5 steps */}
         {coordPairs
-          .filter((_, i) => i % 5 === 0 || i === coordPairs.length - 1)
-          .map((pt, i) => (
+          .filter((_: any, i: number) => i % 5 === 0 || i === coordPairs.length - 1)
+          .map((pt: any, i: number) => (
             <circle
               key={i}
               cx={pt.x} cy={pt.y} r={3.5}
-              fill={BAND_COLOR[pt.band]}
+              fill={BAND_COLOR[pt.band as ConfidenceBand]}
               stroke="var(--bg-soft)" strokeWidth={1.5}
             />
           ))}
@@ -157,8 +157,8 @@ export default function ConfidenceTimeline({
 
         {/* X-axis labels */}
         {points
-          .filter((_, i) => i % Math.max(1, Math.floor(points.length / 8)) === 0)
-          .map((p) => (
+          .filter((_: any, i: number) => i % Math.max(1, Math.floor(points.length / 8)) === 0)
+          .map((p: any) => (
             <text
               key={p.stepIndex}
               x={toX(p.stepIndex)} y={height - 4}

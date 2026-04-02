@@ -1,0 +1,7 @@
+﻿
+> strataway@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.3
+
+   Creating an optimized production build ...

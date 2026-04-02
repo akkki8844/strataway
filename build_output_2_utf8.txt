@@ -1,0 +1,113 @@
+﻿
+> strataway@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.3
+
+   Creating an optimized production build ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : 
+NotSpecified: (F    
+ailed to compile.:Str  
+  ing) [], 
+RemoteExcept    ion
+    + 
+FullyQualifiedError    
+Id : NativeCommandErr  
+  or
+ 
+
+./src/app/globals.css
+Module not found: 
+Can't resolve '../../..
+/styles/theme.css'
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+Import trace for 
+requested module:
+./src/app/globals.css
+
+./src/app/globals.css
+Error: Can't resolve '.
+./../../styles/typograp
+hy.css'
+    at 
+finishWithoutResolve (C
+:\Users\smart\Desktop\s
+trataway\node_modules\n
+ext\dist\compiled\webpa
+ck\bundle5.js:1:192543)
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:193440
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:194069
+    at eval (eval at 
+create (C:\Users\smart\
+Desktop\strataway\node_
+modules\next\dist\compi
+led\webpack\bundle5.js:
+13:28858), 
+<anonymous>:16:1)
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:194069
+    at eval (eval at 
+create (C:\Users\smart\
+Desktop\strataway\node_
+modules\next\dist\compi
+led\webpack\bundle5.js:
+13:28858), 
+<anonymous>:27:1)
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:176873
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:194069
+    at eval (eval at 
+create (C:\Users\smart\
+Desktop\strataway\node_
+modules\next\dist\compi
+led\webpack\bundle5.js:
+13:28858), 
+<anonymous>:16:1)
+    at C:\Users\smart\D
+esktop\strataway\node_m
+odules\next\dist\compil
+ed\webpack\bundle5.js:1
+:209683
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+
+> Build failed because 
+of webpack errors
