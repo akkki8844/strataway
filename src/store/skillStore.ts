@@ -24,7 +24,7 @@ interface SkillState {
 export const useSkillStore = create<SkillState>()((set, get) => ({
   graph: SEED_SKILL_GRAPH,
   mastery: SEED_MASTERY,
-  layout: layoutSkillGraph(SEED_SKILL_GRAPH, { horizontalSpacing: 240, verticalSpacing: 120 }),
+  layout: layoutSkillGraph(SEED_SKILL_GRAPH.skills, SEED_SKILL_GRAPH.dependencies),
   selectedSkillId: null,
   highlightedPath: [],
   isLoading: false,

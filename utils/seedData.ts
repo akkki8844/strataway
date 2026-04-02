@@ -1,6 +1,6 @@
-import { SkillGraph, SkillNode, SkillDependencyEdge, SkillMasteryState } from '../types/skill';
-import { RoutePlan, RouteGoal, GoalConstraints, RouteMilestone, WeeklyTask } from '../types/route';
-import { AnalyticsSnapshot, WeeklyLoadSnapshot, RiskBreakdown, ProbabilityTimeline } from '../types/analytics';
+import { SkillGraph, SkillNode, SkillDependency, SkillMasteryState } from '../types/skill';
+import { RoutePlan, RouteGoal, RouteMilestone } from '../types/route';
+import { AnalyticsSnapshot, WeeklyLoad, RiskBreakdown, ProbabilityTimeline } from '../types/analytics';
 import { UserState } from '../types/user';
 import { Task } from '../types/task';
 
@@ -22,9 +22,14 @@ export const SEED_SKILLS: SkillNode[] = [
   { id: 'nlp', name: 'NLP Fundamentals', description: 'Tokenization, embeddings, transformers', category: 'core_concept', difficulty: 'advanced', estimatedHours: 50 },
   { id: 'sql', name: 'SQL & Databases', description: 'Queries, joins, aggregations', category: 'tooling', difficulty: 'introductory', estimatedHours: 18 },
   { id: 'capstone_project', name: 'Capstone Project', description: 'End-to-end ML project from data to deployment', category: 'project', difficulty: 'advanced', estimatedHours: 80 },
+  // Adding more skills to make it comprehensive
+  { id: 'docker', name: 'Docker', description: 'Containerization for models', category: 'tooling', difficulty: 'intermediate', estimatedHours: 15 },
+  { id: 'cloud_basics', name: 'Cloud Basics', description: 'AWS/GCP fundamental services', category: 'tooling', difficulty: 'intermediate', estimatedHours: 20 },
+  { id: 'mlops', name: 'MLOps', description: 'CI/CD for machine learning', category: 'project', difficulty: 'advanced', estimatedHours: 35 },
+  { id: 'calculus', name: 'Calculus', description: 'Derivatives, gradients, optimization', category: 'supporting_concept', difficulty: 'advanced', estimatedHours: 35 },
 ];
 
-export const SEED_DEPENDENCIES: SkillDependencyEdge[] = [
+export const SEED_DEPENDENCIES: SkillDependency[] = [
   { id: 'e1', fromSkillId: 'python_basics', toSkillId: 'data_structures', isSoft: false },
   { id: 'e2', fromSkillId: 'data_structures', toSkillId: 'algorithms', isSoft: false },
   { id: 'e3', fromSkillId: 'python_basics', toSkillId: 'numpy', isSoft: false },
@@ -41,6 +46,10 @@ export const SEED_DEPENDENCIES: SkillDependencyEdge[] = [
   { id: 'e14', fromSkillId: 'sql', toSkillId: 'pandas', isSoft: true },
   { id: 'e15', fromSkillId: 'sklearn', toSkillId: 'capstone_project', isSoft: false },
   { id: 'e16', fromSkillId: 'nlp', toSkillId: 'capstone_project', isSoft: true },
+  { id: 'e17', fromSkillId: 'calculus', toSkillId: 'deep_learning', isSoft: false },
+  { id: 'e18', fromSkillId: 'docker', toSkillId: 'mlops', isSoft: false },
+  { id: 'e19', fromSkillId: 'cloud_basics', toSkillId: 'mlops', isSoft: false },
+  { id: 'e20', fromSkillId: 'mlops', toSkillId: 'capstone_project', isSoft: true },
 ];
 
 export const SEED_SKILL_GRAPH: SkillGraph = {
@@ -64,40 +73,38 @@ export const SEED_MASTERY: SkillMasteryState[] = [
   { skillId: 'pytorch', status: 'locked', progress: 0 },
   { skillId: 'nlp', status: 'locked', progress: 0 },
   { skillId: 'capstone_project', status: 'locked', progress: 0 },
+  { skillId: 'docker', status: 'locked', progress: 0 },
+  { skillId: 'cloud_basics', status: 'locked', progress: 0 },
+  { skillId: 'mlops', status: 'locked', progress: 0 },
+  { skillId: 'calculus', status: 'locked', progress: 0 },
 ];
 
 // ─── Goal Seed ──────────────────────────────────────────────────────────────
 
 export const SEED_GOAL_ID = 'goal_ml_engineer';
-export const SEED_GOAL_CONSTRAINTS: GoalConstraints = {
-  maxHoursPerWeek: 15,
-  maxBudget: 500,
-  difficultyTolerance: 'medium',
-  preferredProfile: 'balanced',
-};
 
 export const SEED_GOAL: RouteGoal = {
   id: SEED_GOAL_ID,
   title: 'Become an ML Engineer',
   description: 'Transition from software developer to ML engineer with practical project experience',
   targetOutcome: 'Ship a production ML model and land a mid-level ML engineering role',
-  constraints: SEED_GOAL_CONSTRAINTS,
+  constraints: {
+    maxHoursPerWeek: 15,
+    maxBudget: 500,
+    difficultyTolerance: 'medium',
+    preferredProfile: 'balanced',
+  },
 };
 
 // ─── Route Seeds ────────────────────────────────────────────────────────────
 
-function makeTask(id: string, title: string, week: number, hours: number, skillId: string | null, kind: string = 'study'): WeeklyTask {
-  return { id, title, description: `Complete: ${title}`, weekIndex: week, estimatedHours: hours, skillId, milestoneId: null, isOptional: false };
-}
-
 function makeMilestone(id: string, title: string, week: number, isCritical = true): RouteMilestone {
-  return { id, title, description: `Reach milestone: ${title}`, targetWeekIndex: week, skills: [], isCritical };
+  return { id, title, targetWeekIndex: week, isCritical };
 }
 
 export const SEED_ROUTES: RoutePlan[] = [
   {
-    meta: { id: 'route_fast', label: 'Sprint Path', profile: 'fast', createdAt: '2024-01-01' },
-    goal: SEED_GOAL,
+    meta: { id: 'route_fast', label: 'Sprint Path', profile: 'fast' },
     weeks: 24,
     milestones: [
       makeMilestone('m_fast_1', 'Stats & Math Complete', 6),
@@ -106,22 +113,20 @@ export const SEED_ROUTES: RoutePlan[] = [
       makeMilestone('m_fast_4', 'Capstone Shipped', 24),
     ],
     tasks: [
-      makeTask('t_f1', 'Statistics crash course', 0, 8, 'statistics'),
-      makeTask('t_f2', 'Linear algebra sprint', 1, 10, 'linear_algebra'),
-      makeTask('t_f3', 'Algorithms review', 2, 8, 'algorithms'),
-      makeTask('t_f4', 'ML Theory intensive', 3, 12, 'ml_theory'),
-      makeTask('t_f5', 'Scikit-learn bootcamp', 5, 14, 'sklearn'),
-      makeTask('t_f6', 'Deep learning foundations', 8, 15, 'deep_learning'),
-      makeTask('t_f7', 'PyTorch hands-on', 12, 14, 'pytorch'),
-      makeTask('t_f8', 'NLP project', 16, 12, 'nlp'),
-      makeTask('t_f9', 'Capstone project', 20, 16, 'capstone_project'),
+      { id: 't_f1', title: 'Statistics crash course', weekIndex: 0, estimatedHours: 8, skillId: 'statistics' },
+      { id: 't_f2', title: 'Linear algebra sprint', weekIndex: 1, estimatedHours: 10, skillId: 'linear_algebra' },
+      { id: 't_f3', title: 'Algorithms review', weekIndex: 2, estimatedHours: 8, skillId: 'algorithms' },
+      { id: 't_f4', title: 'ML Theory intensive', weekIndex: 3, estimatedHours: 12, skillId: 'ml_theory' },
+      { id: 't_f5', title: 'Scikit-learn bootcamp', weekIndex: 5, estimatedHours: 14, skillId: 'sklearn' },
+      { id: 't_f6', title: 'Deep learning foundations', weekIndex: 8, estimatedHours: 15, skillId: 'deep_learning' },
+      { id: 't_f7', title: 'PyTorch hands-on', weekIndex: 12, estimatedHours: 14, skillId: 'pytorch' },
+      { id: 't_f8', title: 'NLP project', weekIndex: 16, estimatedHours: 12, skillId: 'nlp' },
+      { id: 't_f9', title: 'Capstone project', weekIndex: 20, estimatedHours: 16, skillId: 'capstone_project' },
     ],
     cost: { totalHours: 109, totalCost: 0 },
-    risk: { level: 'high', sustainability: 'fragile' },
   },
   {
-    meta: { id: 'route_balanced', label: 'Balanced Path', profile: 'balanced', createdAt: '2024-01-01' },
-    goal: SEED_GOAL,
+    meta: { id: 'route_balanced', label: 'Balanced Path', profile: 'balanced' },
     weeks: 36,
     milestones: [
       makeMilestone('m_bal_1', 'Foundations Solid', 8),
@@ -131,56 +136,52 @@ export const SEED_ROUTES: RoutePlan[] = [
       makeMilestone('m_bal_5', 'Capstone Complete', 36),
     ],
     tasks: [
-      makeTask('t_b1', 'SQL & data foundations', 0, 6, 'sql'),
-      makeTask('t_b2', 'Pandas deep dive', 2, 7, 'pandas'),
-      makeTask('t_b3', 'Matplotlib & visualization', 4, 5, 'matplotlib'),
-      makeTask('t_b4', 'Statistics & probability', 5, 8, 'statistics'),
-      makeTask('t_b5', 'Linear algebra', 7, 8, 'linear_algebra'),
-      makeTask('t_b6', 'Algorithms fundamentals', 9, 8, 'algorithms'),
-      makeTask('t_b7', 'ML Theory core', 11, 10, 'ml_theory'),
-      makeTask('t_b8', 'Scikit-learn project', 14, 10, 'sklearn'),
-      makeTask('t_b9', 'Deep learning theory', 18, 12, 'deep_learning'),
-      makeTask('t_b10', 'PyTorch practice', 22, 12, 'pytorch'),
-      makeTask('t_b11', 'NLP mini project', 26, 10, 'nlp'),
-      makeTask('t_b12', 'Capstone planning & build', 30, 14, 'capstone_project'),
+      { id: 't_b1', title: 'SQL & data foundations', weekIndex: 0, estimatedHours: 6, skillId: 'sql' },
+      { id: 't_b2', title: 'Pandas deep dive', weekIndex: 2, estimatedHours: 7, skillId: 'pandas' },
+      { id: 't_b3', title: 'Matplotlib & visualization', weekIndex: 4, estimatedHours: 5, skillId: 'matplotlib' },
+      { id: 't_b4', title: 'Statistics & probability', weekIndex: 5, estimatedHours: 8, skillId: 'statistics' },
+      { id: 't_b5', title: 'Linear algebra', weekIndex: 7, estimatedHours: 8, skillId: 'linear_algebra' },
+      { id: 't_b6', title: 'Algorithms fundamentals', weekIndex: 9, estimatedHours: 8, skillId: 'algorithms' },
+      { id: 't_b7', title: 'ML Theory core', weekIndex: 11, estimatedHours: 10, skillId: 'ml_theory' },
+      { id: 't_b8', title: 'Scikit-learn project', weekIndex: 14, estimatedHours: 10, skillId: 'sklearn' },
+      { id: 't_b9', title: 'Deep learning theory', weekIndex: 18, estimatedHours: 12, skillId: 'deep_learning' },
+      { id: 't_b10', title: 'PyTorch practice', weekIndex: 22, estimatedHours: 12, skillId: 'pytorch' },
+      { id: 't_b11', title: 'NLP mini project', weekIndex: 26, estimatedHours: 10, skillId: 'nlp' },
+      { id: 't_b12', title: 'Capstone planning & build', weekIndex: 30, estimatedHours: 14, skillId: 'capstone_project' },
     ],
     cost: { totalHours: 110, totalCost: 0 },
-    risk: { level: 'medium', sustainability: 'stable' },
   },
   {
-    meta: { id: 'route_safe', label: 'Safe Path', profile: 'safe', createdAt: '2024-01-01' },
-    goal: SEED_GOAL,
+    meta: { id: 'route_safe', label: 'Safe Path', profile: 'safe' },
     weeks: 52,
     milestones: [
       makeMilestone('m_safe_1', 'Programming Confident', 10),
       makeMilestone('m_safe_2', 'Math Complete', 20),
-      makeMilestone('m_safe_3', 'Data Skills:', 28),
+      makeMilestone('m_safe_3', 'Data Skills', 28),
       makeMilestone('m_safe_4', 'Classical ML Mastered', 38),
       makeMilestone('m_safe_5', 'Deep Learning Ready', 46),
       makeMilestone('m_safe_6', 'Project Shipped', 52),
     ],
     tasks: [
-      makeTask('t_s1', 'Python review & deepening', 0, 5, 'python_basics'),
-      makeTask('t_s2', 'Data structures thorough', 3, 6, 'data_structures'),
-      makeTask('t_s3', 'Algorithms slow & deep', 6, 7, 'algorithms'),
-      makeTask('t_s4', 'SQL comprehensive', 8, 6, 'sql'),
-      makeTask('t_s5', 'Statistics with exercises', 10, 8, 'statistics'),
-      makeTask('t_s6', 'Linear algebra step-by-step', 14, 8, 'linear_algebra'),
-      makeTask('t_s7', 'Numpy & Pandas mastery', 18, 7, 'pandas'),
-      makeTask('t_s8', 'Visualization skills', 21, 5, 'matplotlib'),
-      makeTask('t_s9', 'ML theory thorough reading', 24, 10, 'ml_theory'),
-      makeTask('t_s10', 'Scikit-learn all modules', 28, 10, 'sklearn'),
-      makeTask('t_s11', 'Deep learning theory slow', 33, 10, 'deep_learning'),
-      makeTask('t_s12', 'PyTorch structured course', 38, 10, 'pytorch'),
-      makeTask('t_s13', 'NLP study & practice', 43, 8, 'nlp'),
-      makeTask('t_s14', 'Capstone project extended', 47, 12, 'capstone_project'),
+      { id: 't_s1', title: 'Python review & deepening', weekIndex: 0, estimatedHours: 5, skillId: 'python_basics' },
+      { id: 't_s2', title: 'Data structures thorough', weekIndex: 3, estimatedHours: 6, skillId: 'data_structures' },
+      { id: 't_s3', title: 'Algorithms slow & deep', weekIndex: 6, estimatedHours: 7, skillId: 'algorithms' },
+      { id: 't_s4', title: 'SQL comprehensive', weekIndex: 8, estimatedHours: 6, skillId: 'sql' },
+      { id: 't_s5', title: 'Statistics with exercises', weekIndex: 10, estimatedHours: 8, skillId: 'statistics' },
+      { id: 't_s6', title: 'Linear algebra step-by-step', weekIndex: 14, estimatedHours: 8, skillId: 'linear_algebra' },
+      { id: 't_s7', title: 'Numpy & Pandas mastery', weekIndex: 18, estimatedHours: 7, skillId: 'pandas' },
+      { id: 't_s8', title: 'Visualization skills', weekIndex: 21, estimatedHours: 5, skillId: 'matplotlib' },
+      { id: 't_s9', title: 'ML theory thorough reading', weekIndex: 24, estimatedHours: 10, skillId: 'ml_theory' },
+      { id: 't_s10', title: 'Scikit-learn all modules', weekIndex: 28, estimatedHours: 10, skillId: 'sklearn' },
+      { id: 't_s11', title: 'Deep learning theory slow', weekIndex: 33, estimatedHours: 10, skillId: 'deep_learning' },
+      { id: 't_s12', title: 'PyTorch structured course', weekIndex: 38, estimatedHours: 10, skillId: 'pytorch' },
+      { id: 't_s13', title: 'NLP study & practice', weekIndex: 43, estimatedHours: 8, skillId: 'nlp' },
+      { id: 't_s14', title: 'Capstone project extended', weekIndex: 47, estimatedHours: 12, skillId: 'capstone_project' },
     ],
     cost: { totalHours: 112, totalCost: 0 },
-    risk: { level: 'low', sustainability: 'stable' },
   },
   {
-    meta: { id: 'route_prestige', label: 'Prestige Path', profile: 'prestige', createdAt: '2024-01-01' },
-    goal: SEED_GOAL,
+    meta: { id: 'route_prestige', label: 'Prestige Path', profile: 'prestige' },
     weeks: 48,
     milestones: [
       makeMilestone('m_p1', 'Research-Grade Math', 12),
@@ -189,24 +190,23 @@ export const SEED_ROUTES: RoutePlan[] = [
       makeMilestone('m_p4', 'Published-Quality Project', 48),
     ],
     tasks: [
-      makeTask('t_p1', 'Advanced statistics & experiments', 0, 10, 'statistics'),
-      makeTask('t_p2', 'Deep linear algebra', 3, 12, 'linear_algebra'),
-      makeTask('t_p3', 'Advanced algorithms + complexity', 6, 12, 'algorithms'),
-      makeTask('t_p4', 'ML theory from first principles', 10, 14, 'ml_theory'),
-      makeTask('t_p5', 'Scikit-learn + benchmarking', 14, 12, 'sklearn'),
-      makeTask('t_p6', 'Deep learning papers + practice', 18, 16, 'deep_learning'),
-      makeTask('t_p7', 'PyTorch research workflows', 24, 14, 'pytorch'),
-      makeTask('t_p8', 'Transformers & NLP research', 30, 16, 'nlp'),
-      makeTask('t_p9', 'Capstone: research-quality project', 38, 20, 'capstone_project'),
+      { id: 't_p1', title: 'Advanced statistics & experiments', weekIndex: 0, estimatedHours: 10, skillId: 'statistics' },
+      { id: 't_p2', title: 'Deep linear algebra', weekIndex: 3, estimatedHours: 12, skillId: 'linear_algebra' },
+      { id: 't_p3', title: 'Advanced algorithms + complexity', weekIndex: 6, estimatedHours: 12, skillId: 'algorithms' },
+      { id: 't_p4', title: 'ML theory from first principles', weekIndex: 10, estimatedHours: 14, skillId: 'ml_theory' },
+      { id: 't_p5', title: 'Scikit-learn + benchmarking', weekIndex: 14, estimatedHours: 12, skillId: 'sklearn' },
+      { id: 't_p6', title: 'Deep learning papers + practice', weekIndex: 18, estimatedHours: 16, skillId: 'deep_learning' },
+      { id: 't_p7', title: 'PyTorch research workflows', weekIndex: 24, estimatedHours: 14, skillId: 'pytorch' },
+      { id: 't_p8', title: 'Transformers & NLP research', weekIndex: 30, estimatedHours: 16, skillId: 'nlp' },
+      { id: 't_p9', title: 'Capstone: research-quality project', weekIndex: 38, estimatedHours: 20, skillId: 'capstone_project' },
     ],
     cost: { totalHours: 126, totalCost: 200 },
-    risk: { level: 'medium', sustainability: 'stretch' },
   },
 ];
 
 // ─── Analytics Seed ─────────────────────────────────────────────────────────
 
-export const SEED_WEEKLY_LOADS: WeeklyLoadSnapshot[] = Array.from({ length: 36 }, (_, i) => {
+export const SEED_WEEKLY_LOADS: WeeklyLoad[] = Array.from({ length: 36 }, (_, i) => {
   const planned = 8 + Math.sin(i * 0.4) * 4 + Math.random() * 2;
   const max = 15;
   const overload = planned > max * 0.9;
@@ -215,7 +215,6 @@ export const SEED_WEEKLY_LOADS: WeeklyLoadSnapshot[] = Array.from({ length: 36 }
     weekIndex: i,
     plannedHours: Math.round(planned * 10) / 10,
     maxHours: max,
-    effortLevel: planned < 7 ? 'light' : planned < 12 ? 'moderate' : 'heavy',
     burnoutRisk: planned > 14 ? 'high' : planned > 11 ? 'medium' : 'low',
     overload,
   };
@@ -243,10 +242,10 @@ export const SEED_RISK_BREAKDOWN: RiskBreakdown = {
 
 export const SEED_ANALYTICS: AnalyticsSnapshot = {
   routes: [
-    { routeId: 'route_fast', goalId: SEED_GOAL_ID, pace: 'fast', estimatedWeeks: 24, totalEffortHours: 109, totalCost: 0, risk: 'high', sustainability: 'fragile', currentConfidence: 'medium' },
-    { routeId: 'route_balanced', goalId: SEED_GOAL_ID, pace: 'balanced', estimatedWeeks: 36, totalEffortHours: 110, totalCost: 0, risk: 'medium', sustainability: 'stable', currentConfidence: 'high' },
-    { routeId: 'route_safe', goalId: SEED_GOAL_ID, pace: 'safe', estimatedWeeks: 52, totalEffortHours: 112, totalCost: 0, risk: 'low', sustainability: 'stable', currentConfidence: 'very_high' },
-    { routeId: 'route_prestige', goalId: SEED_GOAL_ID, pace: 'prestige', estimatedWeeks: 48, totalEffortHours: 126, totalCost: 200, risk: 'medium', sustainability: 'stretch', currentConfidence: 'high' },
+    { routeId: 'route_fast', pace: 'fast', estimatedWeeks: 24, totalEffortHours: 109, totalCost: 0, risk: 'high', sustainability: 'stable', currentConfidence: 'medium' },
+    { routeId: 'route_balanced', pace: 'balanced', estimatedWeeks: 36, totalEffortHours: 110, totalCost: 0, risk: 'medium', sustainability: 'stable', currentConfidence: 'high' },
+    { routeId: 'route_safe',  pace: 'safe', estimatedWeeks: 52, totalEffortHours: 112, totalCost: 0, risk: 'low', sustainability: 'stable', currentConfidence: 'very_high' },
+    { routeId: 'route_prestige', pace: 'prestige', estimatedWeeks: 48, totalEffortHours: 126, totalCost: 200, risk: 'medium', sustainability: 'stretch', currentConfidence: 'high' },
   ],
   probabilityTimelines: [SEED_PROBABILITY_TIMELINE],
   riskBreakdowns: [SEED_RISK_BREAKDOWN],
@@ -289,38 +288,33 @@ export const SEED_USER: UserState = {
 export const SEED_TASKS: Task[] = [
   {
     core: { id: 'task_01', title: 'SQL & data foundations', description: 'Complete SQL module covering DML, DDL, joins, subqueries', kind: 'study', estimatedHours: 6, weekIndex: 0 },
-    links: { skillId: 'sql', milestoneId: null, routeId: 'route_balanced', goalId: SEED_GOAL_ID },
+    links: { skillId: 'sql', routeId: 'route_balanced' },
     execution: { status: 'completed', actualHours: 5.5, completedAt: '2024-01-22' },
-    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, reason: null },
-    constraints: { maxHoursPerWeek: 15, availableHoursThisWeek: 9 },
+    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, skipReason: null },
   },
   {
     core: { id: 'task_02', title: 'Pandas deep dive', description: 'DataFrames, groupby, merge, pivot tables, apply functions', kind: 'study', estimatedHours: 7, weekIndex: 2 },
-    links: { skillId: 'pandas', milestoneId: null, routeId: 'route_balanced', goalId: SEED_GOAL_ID },
+    links: { skillId: 'pandas', routeId: 'route_balanced' },
     execution: { status: 'completed', actualHours: 8, completedAt: '2024-02-05' },
-    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, reason: null },
-    constraints: { maxHoursPerWeek: 15, availableHoursThisWeek: 7 },
+    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, skipReason: null },
   },
   {
     core: { id: 'task_03', title: 'Statistics & probability', description: 'Descriptive stats, distributions, hypothesis testing, Bayes theorem', kind: 'study', estimatedHours: 8, weekIndex: 5 },
-    links: { skillId: 'statistics', milestoneId: 'm_bal_1', routeId: 'route_balanced', goalId: SEED_GOAL_ID },
+    links: { skillId: 'statistics', routeId: 'route_balanced' },
     execution: { status: 'in_progress', actualHours: 3, completedAt: null },
-    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, reason: null },
-    constraints: { maxHoursPerWeek: 15, availableHoursThisWeek: 12 },
+    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, skipReason: null },
   },
   {
     core: { id: 'task_04', title: 'Matplotlib & Seaborn visualization', description: 'Charts, plots, statistical visualization patterns', kind: 'practice', estimatedHours: 5, weekIndex: 4 },
-    links: { skillId: 'matplotlib', milestoneId: null, routeId: 'route_balanced', goalId: SEED_GOAL_ID },
+    links: { skillId: 'matplotlib', routeId: 'route_balanced' },
     execution: { status: 'planned', actualHours: null, completedAt: null },
-    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, reason: null },
-    constraints: { maxHoursPerWeek: 15, availableHoursThisWeek: 10 },
+    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, skipReason: null },
   },
   {
     core: { id: 'task_05', title: 'Linear algebra', description: 'Vectors, matrices, transformations, eigendecomposition', kind: 'study', estimatedHours: 8, weekIndex: 7 },
-    links: { skillId: 'linear_algebra', milestoneId: null, routeId: 'route_balanced', goalId: SEED_GOAL_ID },
+    links: { skillId: 'linear_algebra', routeId: 'route_balanced' },
     execution: { status: 'planned', actualHours: null, completedAt: null },
-    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, reason: null },
-    constraints: { maxHoursPerWeek: 15, availableHoursThisWeek: 15 },
+    adjustment: { rescheduledFromWeekIndex: null, rescheduledToWeekIndex: null, skipReason: null },
   },
 ];
 

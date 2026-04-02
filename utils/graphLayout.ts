@@ -1,4 +1,4 @@
-import { SkillNode } from '../types/skill';
+import { SkillNode, SkillDependency } from '../types/skill';
 
 export interface PositionedSkillNode extends SkillNode {
   x: number;
@@ -6,7 +6,11 @@ export interface PositionedSkillNode extends SkillNode {
   layer: number;
 }
 
-export function layoutSkillGraph(skills: SkillNode[], dependencies: any[]): { nodes: PositionedSkillNode[] } {
+export interface SkillGraphLayout {
+  nodes: PositionedSkillNode[];
+}
+
+export function layoutSkillGraph(skills: SkillNode[], dependencies: SkillDependency[]): SkillGraphLayout {
   // Mock layout algorithm for graphing
   return {
     nodes: skills.map((s, i) => ({

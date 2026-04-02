@@ -20,6 +20,7 @@ export interface Task {
   };
   adjustment: {
     rescheduledFromWeekIndex: number | null;
+    rescheduledToWeekIndex: number | null;
     skipReason: string | null;
   };
 }

@@ -30,3 +30,16 @@ export interface RoutePlan {
     estimatedHours: number;
   }>;
 }
+
+export interface RouteGoal {
+  id: string;
+  title: string;
+  description: string;
+  targetOutcome: string;
+  constraints?: any;
+}
+
+export interface RouteComparisonSet {
+  goal: RouteGoal;
+  routes: RoutePlan[];
+}

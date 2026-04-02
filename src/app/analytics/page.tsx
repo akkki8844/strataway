@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {riskBreakdown.factors.map(factor => (
+                {riskBreakdown.factors.map((factor: RiskFactor) => (
                   <RiskFactorRow key={factor.id} factor={factor} />
                 ))}
               </div>
@@ -203,8 +203,8 @@ export default function AnalyticsPage() {
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>Domain breakdown:</div>
                 {['time', 'prerequisites', 'consistency', 'difficulty', 'external'].map(domain => {
-                  const domainFactors = riskBreakdown.factors.filter(f => f.domain === domain);
-                  const totalWeight = domainFactors.reduce((acc, f) => acc + f.weight, 0);
+                  const domainFactors = riskBreakdown.factors.filter((f: RiskFactor) => f.domain === domain);
+                  const totalWeight = domainFactors.reduce((acc: number, f: RiskFactor) => acc + f.weight, 0);
                   if (totalWeight === 0) return null;
                   return (
                     <div key={domain} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>

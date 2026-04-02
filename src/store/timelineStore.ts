@@ -41,11 +41,11 @@ export const useTimelineStore = create<TimelineState>()((set, get) => ({
       ),
     })),
 
-  skipTask: (taskId, reason) =>
+  skipTask: (taskId, skipReason) =>
     set((state) => ({
       tasks: state.tasks.map((t) =>
         t.core.id === taskId
-          ? { ...t, execution: { ...t.execution, status: 'skipped' }, adjustment: { ...t.adjustment, reason } }
+          ? { ...t, execution: { ...t.execution, status: 'skipped' }, adjustment: { ...t.adjustment, skipReason } }
           : t
       ),
     })),
@@ -58,9 +58,10 @@ export const useTimelineStore = create<TimelineState>()((set, get) => ({
           ...t,
           core: { ...t.core, weekIndex: toWeek },
           adjustment: {
+            ...t.adjustment,
             rescheduledFromWeekIndex: t.core.weekIndex,
             rescheduledToWeekIndex: toWeek,
-            reason: 'manual_reschedule',
+            skipReason: 'manual_reschedule',
           },
         };
       }),

@@ -7,6 +7,11 @@ export interface ProbabilityPoint {
   band: ConfidenceBand;
 }
 
+export interface ProbabilityTimeline {
+  routeId: string;
+  points: ProbabilityPoint[];
+}
+
 export interface RiskFactor {
   id: string;
   label: string;
